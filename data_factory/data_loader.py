@@ -293,7 +293,15 @@ class GMSSegLoader(object):
 
 
 
-def get_loader_segment(data_path, batch_size, win_size=100, step=100, mode='train', dataset='KDD'):
+def get_loader_segment(
+    data_path,
+    batch_size,
+    win_size=100,
+    step=100,
+    mode='train',
+    dataset='KDD',
+    num_workers=0,
+):
     if (dataset == 'SMD'):
         dataset = SMDSegLoader(data_path, win_size, step, mode)
     elif (dataset == 'MSL'):
@@ -309,8 +317,11 @@ def get_loader_segment(data_path, batch_size, win_size=100, step=100, mode='trai
     if mode == 'train':
         shuffle = True
 
-    data_loader = DataLoader(dataset=dataset,
-                             batch_size=batch_size,
-                             shuffle=shuffle,
-                             num_workers=0)
+    data_loader = DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
     return data_loader
