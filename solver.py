@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import pandas as pd
 import numpy as np
 import os
 import time
@@ -348,5 +349,12 @@ class Solver(object):
             "Accuracy : {:0.4f}, Precision : {:0.4f}, Recall : {:0.4f}, F-score : {:0.4f} ".format(
                 accuracy, precision,
                 recall, f_score))
+        
+        results_df = pd.DataFrame({
+            'anomaly_score': test_energy,
+            'prediction': pred,
+            'ground_truth': gt
+        })
+        results_df.to_csv('anomaly_results_test.csv', index=False)
 
         return accuracy, precision, recall, f_score
