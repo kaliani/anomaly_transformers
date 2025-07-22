@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict
 import numpy as np
 import pandas as pd
 import torch
@@ -7,7 +7,7 @@ import torch.nn as nn
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 from model.AnomalyTransformer import AnomalyTransformer
-from data_factory.data_loader import get_loader_segment
+from data_factory.data_loader import get_loader_segment, get_loader_from_arrays
 from solver import my_kl_loss, _normalize_prior
 
 
@@ -17,7 +17,7 @@ class AnomalyPredictor:
     def __init__(
         self,
         model_path: str,
-        data_path: str,
+        data_path: Optional[str] = None,
         dataset: str = "SMD",
         win_size: int = 100,
         step: int = 100,
@@ -25,8 +25,10 @@ class AnomalyPredictor:
         num_workers: Optional[int] = None,
         anomaly_ratio: float = 4.0,
         device: Optional[str] = None,
+        array_data: Optional[Dict[str, np.ndarray]] = None,
     ):
         self.data_path = data_path
+        self.array_data = array_data
         self.dataset = dataset
         self.win_size = win_size
         self.step = step
@@ -36,33 +38,68 @@ class AnomalyPredictor:
         self.device = torch.device(device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu"))
 
         # prepare data loaders
-        self.train_loader = get_loader_segment(
-            data_path,
-            batch_size=batch_size,
-            win_size=win_size,
-            step=step,
-            mode="train",
-            dataset=dataset,
-            num_workers=self.num_workers,
-        )
-        self.thre_loader = get_loader_segment(
-            data_path,
-            batch_size=batch_size,
-            win_size=win_size,
-            step=step,
-            mode="thre",
-            dataset=dataset,
-            num_workers=self.num_workers,
-        )
-        self.test_loader = get_loader_segment(
-            data_path,
-            batch_size=batch_size,
-            win_size=win_size,
-            step=step,
-            mode="test",
-            dataset=dataset,
-            num_workers=self.num_workers,
-        )
+        if self.array_data is None:
+            self.train_loader = get_loader_segment(
+                data_path,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode="train",
+                dataset=dataset,
+                num_workers=self.num_workers,
+            )
+            self.thre_loader = get_loader_segment(
+                data_path,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode="thre",
+                dataset=dataset,
+                num_workers=self.num_workers,
+            )
+            self.test_loader = get_loader_segment(
+                data_path,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode="test",
+                dataset=dataset,
+                num_workers=self.num_workers,
+            )
+        else:
+            train_arr = self.array_data["train"]
+            test_arr = self.array_data["test"]
+            labels_arr = self.array_data["test_labels"]
+            self.train_loader = get_loader_from_arrays(
+                train_arr,
+                test_arr,
+                labels_arr,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode="train",
+                num_workers=self.num_workers,
+            )
+            self.thre_loader = get_loader_from_arrays(
+                train_arr,
+                test_arr,
+                labels_arr,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode="thre",
+                num_workers=self.num_workers,
+            )
+            self.test_loader = get_loader_from_arrays(
+                train_arr,
+                test_arr,
+                labels_arr,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode="test",
+                num_workers=self.num_workers,
+            )
 
         feat_dim = self.train_loader.dataset.train.shape[-1]
         self.model = AnomalyTransformer(win_size=win_size, enc_in=feat_dim, c_out=feat_dim, e_layers=3)

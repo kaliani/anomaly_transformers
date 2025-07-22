@@ -325,3 +325,78 @@ def get_loader_segment(
         pin_memory=True,
     )
     return data_loader
+
+
+class ArraySegLoader(object):
+    """Dataset loader for in-memory arrays."""
+
+    def __init__(self, train, test, test_labels, win_size, step, mode="train"):
+        self.mode = mode
+        self.step = step
+        self.win_size = win_size
+        self.scaler = StandardScaler()
+
+        train = np.asarray(train)
+        test = np.asarray(test)
+        test_labels = np.asarray(test_labels)
+
+        self.scaler.fit(train)
+        self.train = self.scaler.transform(train)
+        self.test = self.scaler.transform(test)
+
+        data_len = len(self.train)
+        self.val = self.train[int(data_len * 0.8):]
+        self.test_labels = test_labels
+
+        print("ArraySegLoader initialized:")
+        print("test:", self.test.shape)
+        print("train:", self.train.shape)
+        print("val:", self.val.shape)
+        print("test_labels:", self.test_labels.shape)
+
+    def __len__(self):
+        if self.mode == "train":
+            return (self.train.shape[0] - self.win_size) // self.step + 1
+        elif self.mode == "val":
+            return (self.val.shape[0] - self.win_size) // self.step + 1
+        elif self.mode == "test":
+            return (self.test.shape[0] - self.win_size) // self.step + 1
+        else:
+            return (self.test.shape[0] - self.win_size) // self.win_size + 1
+
+    def __getitem__(self, index):
+        index = index * self.step
+        if self.mode == "train":
+            return np.float32(self.train[index:index + self.win_size]), np.float32(self.test_labels[0:self.win_size])
+        elif self.mode == "val":
+            return np.float32(self.val[index:index + self.win_size]), np.float32(self.test_labels[0:self.win_size])
+        elif self.mode == "test":
+            return np.float32(self.test[index:index + self.win_size]), np.float32(self.test_labels[index:index + self.win_size])
+        else:
+            return np.float32(self.test[index // self.step * self.win_size:index // self.step * self.win_size + self.win_size]), np.float32(self.test_labels[index // self.step * self.win_size:index // self.step * self.win_size + self.win_size])
+
+
+def get_loader_from_arrays(
+    train,
+    test,
+    test_labels,
+    batch_size,
+    win_size=100,
+    step=100,
+    mode="train",
+    num_workers=0,
+):
+    dataset = ArraySegLoader(train, test, test_labels, win_size, step, mode)
+
+    shuffle = False
+    if mode == "train":
+        shuffle = True
+
+    data_loader = DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    return data_loader
