@@ -26,6 +26,23 @@ bash ./scripts/PSM.sh
 
 Especially, we use the adjustment operation proposed by [Xu et al, 2018](https://arxiv.org/pdf/1802.03903.pdf) for model evaluation. If you have questions about this, please see this [issue](https://github.com/thuml/Anomaly-Transformer/issues/14) or email us.
 
+### Using `AnomalyPredictor` with in-memory data
+
+You can skip saving intermediate `.npy` files by providing arrays directly:
+
+```python
+from anomaly_predictor import AnomalyPredictor
+
+predictor = AnomalyPredictor(
+    model_path="checkpoints/gms_checkpoint.pth",
+    dataset="gms",
+    data_arrays=(train_array, test_array, test_labels),
+    win_size=1,
+    step=100,
+)
+results_df, metrics = predictor.predict()
+```
+
 ## Main Result
 
 We compare our model with 15 baselines, including THOC, InterFusion, etc. **Generally,  Anomaly-Transformer achieves SOTA.**

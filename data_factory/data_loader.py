@@ -292,6 +292,40 @@ class GMSSegLoader(object):
             return x, np.float32(self.test_labels[index // self.step * self.win_size:index // self.step * self.win_size + self.win_size])
 
 
+class InMemoryGMSSegLoader(GMSSegLoader):
+    """Version of :class:`GMSSegLoader` that works with in-memory arrays."""
+
+    def __init__(self, train_data, test_data, test_labels, win_size, step, mode="train"):
+        self.mode = mode
+        self.step = step
+        self.win_size = win_size
+        self.scaler = StandardScaler()
+
+        train_data_raw = np.asarray(train_data)
+        test_data_raw = np.asarray(test_data)
+        test_labels_raw = np.asarray(test_labels)
+
+        train_data_2d = train_data_raw.reshape(-1, train_data_raw.shape[-1])
+        test_data_2d = test_data_raw.reshape(-1, test_data_raw.shape[-1])
+
+        self.scaler.fit(train_data_2d)
+        train_data_scaled_2d = self.scaler.transform(train_data_2d)
+        test_data_scaled_2d = self.scaler.transform(test_data_2d)
+
+        self.train = train_data_scaled_2d.reshape(train_data_raw.shape)
+        self.test = test_data_scaled_2d.reshape(test_data_raw.shape)
+
+        data_len = len(self.train)
+        self.val = self.train[int(data_len * 0.8):]
+        self.test_labels = test_labels_raw
+
+        print("GMSSegLoaderInMemory initialized:")
+        print("test:", self.test.shape)
+        print("train:", self.train.shape)
+        print("val:", self.val.shape)
+        print("test_labels:", self.test_labels.shape)
+
+
 
 def get_loader_segment(
     data_path,
@@ -312,6 +346,36 @@ def get_loader_segment(
         dataset = PSMSegLoader(data_path, win_size, 1, mode)
     elif (dataset == 'gms'):
         dataset = GMSSegLoader(data_path, win_size, step, mode)
+
+    shuffle = False
+    if mode == 'train':
+        shuffle = True
+
+    data_loader = DataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=num_workers,
+        pin_memory=True,
+    )
+    return data_loader
+
+
+def get_loader_segment_from_arrays(
+    arrays,
+    batch_size,
+    win_size=100,
+    step=100,
+    mode='train',
+    dataset='gms',
+    num_workers=0,
+):
+    """Create a data loader from in-memory arrays."""
+    if dataset != 'gms':
+        raise ValueError("Only 'gms' dataset supported for in-memory loading")
+
+    train_data, test_data, test_labels = arrays
+    dataset = InMemoryGMSSegLoader(train_data, test_data, test_labels, win_size, step, mode)
 
     shuffle = False
     if mode == 'train':

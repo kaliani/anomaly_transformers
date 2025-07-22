@@ -17,8 +17,9 @@ class AnomalyPredictor:
     def __init__(
         self,
         model_path: str,
-        data_path: str,
+        data_path: Optional[str],
         dataset: str = "SMD",
+        data_arrays: Optional[Tuple[np.ndarray, np.ndarray, np.ndarray]] = None,
         win_size: int = 100,
         step: int = 100,
         batch_size: int = 1024,
@@ -27,6 +28,7 @@ class AnomalyPredictor:
         device: Optional[str] = None,
     ):
         self.data_path = data_path
+        self.data_arrays = data_arrays
         self.dataset = dataset
         self.win_size = win_size
         self.step = step
@@ -36,33 +38,32 @@ class AnomalyPredictor:
         self.device = torch.device(device if device is not None else ("cuda" if torch.cuda.is_available() else "cpu"))
 
         # prepare data loaders
-        self.train_loader = get_loader_segment(
-            data_path,
-            batch_size=batch_size,
-            win_size=win_size,
-            step=step,
-            mode="train",
-            dataset=dataset,
-            num_workers=self.num_workers,
-        )
-        self.thre_loader = get_loader_segment(
-            data_path,
-            batch_size=batch_size,
-            win_size=win_size,
-            step=step,
-            mode="thre",
-            dataset=dataset,
-            num_workers=self.num_workers,
-        )
-        self.test_loader = get_loader_segment(
-            data_path,
-            batch_size=batch_size,
-            win_size=win_size,
-            step=step,
-            mode="test",
-            dataset=dataset,
-            num_workers=self.num_workers,
-        )
+        if data_arrays is None:
+            loader_fn = lambda mode: get_loader_segment(
+                data_path,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode=mode,
+                dataset=dataset,
+                num_workers=self.num_workers,
+            )
+        else:
+            from data_factory.data_loader import get_loader_segment_from_arrays
+
+            loader_fn = lambda mode: get_loader_segment_from_arrays(
+                data_arrays,
+                batch_size=batch_size,
+                win_size=win_size,
+                step=step,
+                mode=mode,
+                dataset=dataset,
+                num_workers=self.num_workers,
+            )
+
+        self.train_loader = loader_fn("train")
+        self.thre_loader = loader_fn("thre")
+        self.test_loader = loader_fn("test")
 
         feat_dim = self.train_loader.dataset.train.shape[-1]
         self.model = AnomalyTransformer(win_size=win_size, enc_in=feat_dim, c_out=feat_dim, e_layers=3)
