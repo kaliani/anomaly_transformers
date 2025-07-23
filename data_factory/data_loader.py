@@ -319,11 +319,11 @@ class InMemoryGMSSegLoader(GMSSegLoader):
         self.val = self.train[int(data_len * 0.8):]
         self.test_labels = test_labels_raw
 
-        print("GMSSegLoaderInMemory initialized:")
-        print("test:", self.test.shape)
-        print("train:", self.train.shape)
-        print("val:", self.val.shape)
-        print("test_labels:", self.test_labels.shape)
+        # print("GMSSegLoaderInMemory initialized:")
+        # print("test:", self.test.shape)
+        # print("train:", self.train.shape)
+        # print("val:", self.val.shape)
+        # print("test_labels:", self.test_labels.shape)
 
 
 

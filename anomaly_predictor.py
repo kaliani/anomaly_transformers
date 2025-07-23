@@ -109,8 +109,8 @@ class AnomalyPredictor:
 
         pred = (thre_energy > thresh).astype(int)
         gt = thre_labels.astype(int)
-        accuracy = accuracy_score(gt, pred)
-        precision, recall, f_score, _ = precision_recall_fscore_support(gt, pred, average="binary")
+        # accuracy = accuracy_score(gt, pred)
+        # precision, recall, f_score, _ = precision_recall_fscore_support(gt, pred, average="binary")
 
         results_df = pd.DataFrame({
         "anomaly_score": thre_energy,
@@ -118,7 +118,7 @@ class AnomalyPredictor:
         "ground_truth": gt,
     })
 
-        return results_df, (accuracy, precision, recall, f_score)
+        return results_df#, (accuracy, precision, recall, f_score)
 
 
 __all__ = ["AnomalyPredictor"]
