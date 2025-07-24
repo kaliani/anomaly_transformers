@@ -356,7 +356,7 @@ def get_loader_segment(
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=True
     )
     return data_loader
 
@@ -386,6 +386,6 @@ def get_loader_segment_from_arrays(
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=num_workers,
-        pin_memory=True,
+        pin_memory=True
     )
     return data_loader

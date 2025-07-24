@@ -100,11 +100,12 @@ class AnomalyPredictor:
 
     def predict(self) -> Tuple[pd.DataFrame, Tuple[float, float, float, float]]:
         train_energy = self._compute_energy(self.train_loader)
-        thre_energy = self._compute_energy(self.thre_loader)
+        # thre_energy = self._compute_energy(self.thre_loader)
+        thre_energy, thre_labels = self._compute_energy(self.thre_loader, return_label=True)
 
         combined_energy = np.concatenate([train_energy, thre_energy])
         thresh = np.percentile(combined_energy, 100 - self.anomaly_ratio)
-        thre_energy, thre_labels = self._compute_energy(self.thre_loader, return_label=True)
+        # thre_energy, thre_labels = self._compute_energy(self.thre_loader, return_label=True)
 
 
         pred = (thre_energy > thresh).astype(int)
